@@ -43,28 +43,6 @@ export default function TodayScreen() {
     <SafeAreaView
       edges={['top']}
       style={[styles.screen, { backgroundColor: colors.background }]}>
-      <Text style={[styles.brand, { color: colors.muted }]}>Today</Text>
-      <Text style={[styles.title, { color: colors.text }]}>What matters now</Text>
-
-      <View style={styles.progress}>
-        <ProgressRing complete={complete} total={dayTasks.length} />
-      </View>
-
-      {skipped ? (
-        <Text style={[styles.note, { color: colors.muted }]}>
-          Today is skipped. Your streak stays intact.
-        </Text>
-      ) : dayTasks.length > 0 && complete < dayTasks.length ? (
-        <Pressable
-          onPress={() => {
-            hapticSelect();
-            skipDay(dateKey);
-          }}
-          style={styles.skip}>
-          <Text style={[styles.skipLabel, { color: colors.accent }]}>Skip today</Text>
-        </Pressable>
-      ) : null}
-
       <FlatList
         data={dayTasks}
         keyExtractor={(task) => task.id}
@@ -73,6 +51,8 @@ export default function TodayScreen() {
             refreshing={refreshing}
             onRefresh={refresh}
             tintColor={colors.accent}
+            colors={[colors.accent]}
+            progressBackgroundColor={colors.surface}
           />
         }
         contentContainerStyle={[
@@ -80,11 +60,35 @@ export default function TodayScreen() {
           dayTasks.length === 0 && styles.emptyList,
         ]}
         ListHeaderComponent={
-          dayTasks.length > 0 ? (
-            <Text style={[styles.hint, { color: colors.muted }]}>
-              Swipe a task right to complete it.
+          <View>
+            <Text style={[styles.brand, { color: colors.muted }]}>Today</Text>
+            <Text style={[styles.title, { color: colors.text }]}>What matters now</Text>
+            <Text style={[styles.reloadHint, { color: colors.muted }]}>
+              Swipe down to reload.
             </Text>
-          ) : undefined
+            <View style={styles.progress}>
+              <ProgressRing complete={complete} total={dayTasks.length} />
+            </View>
+            {skipped ? (
+              <Text style={[styles.note, { color: colors.muted }]}>
+                Today is skipped. Your streak stays intact.
+              </Text>
+            ) : dayTasks.length > 0 && complete < dayTasks.length ? (
+              <Pressable
+                onPress={() => {
+                  hapticSelect();
+                  skipDay(dateKey);
+                }}
+                style={styles.skip}>
+                <Text style={[styles.skipLabel, { color: colors.accent }]}>Skip today</Text>
+              </Pressable>
+            ) : null}
+            {dayTasks.length > 0 ? (
+              <Text style={[styles.hint, { color: colors.muted }]}>
+                Swipe a task right to complete it.
+              </Text>
+            ) : null}
+          </View>
         }
         ListEmptyComponent={
           <EmptyState
@@ -137,6 +141,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: type.title,
     fontWeight: '700',
+    marginBottom: space.xs,
+  },
+  reloadHint: {
+    fontSize: type.caption,
     marginBottom: space.lg,
   },
   progress: {

@@ -58,62 +58,6 @@ export default function CalendarScreen() {
     <SafeAreaView
       edges={['top']}
       style={[styles.screen, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
-        <View>
-          <Text style={[styles.brand, { color: colors.muted }]}>Cadence</Text>
-          <Text style={[styles.title, { color: colors.text }]}>{formatMonth(month)}</Text>
-        </View>
-        <View style={styles.arrows}>
-          <Pressable
-            onPress={() => setMonth((current) => shiftMonth(current, -1))}
-            style={[styles.arrow, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.arrowLabel, { color: colors.text }]}>‹</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setMonth((current) => shiftMonth(current, 1))}
-            style={[styles.arrow, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.arrowLabel, { color: colors.text }]}>›</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {storageError ? (
-        <Pressable
-          onPress={clearError}
-          style={[styles.error, { backgroundColor: colors.danger }]}>
-          <Text style={styles.errorText}>{storageError}</Text>
-        </Pressable>
-      ) : null}
-
-      <NotificationBanner />
-
-      <CalendarMonth
-        month={month}
-        tasks={tasks}
-        skippedDays={settings.skippedDays}
-        selectedKey={selectedKey}
-        onSelect={setSelectedKey}
-        onShift={(amount) => setMonth((current) => shiftMonth(current, amount))}
-      />
-
-      <View style={styles.dayHeader}>
-        <View style={styles.dayCopy}>
-          <Text style={[styles.dayTitle, { color: colors.text }]}>
-            {formatLongDate(selectedKey)}
-          </Text>
-          <Text style={[styles.dayMeta, { color: colors.muted }]}>
-            {dayTasks.length === 0
-              ? 'No tasks yet'
-              : `${dayTasks.length} scheduled`}
-          </Text>
-        </View>
-        <Pressable
-          onPress={() => setSheetOpen(true)}
-          style={[styles.add, { backgroundColor: colors.accent }]}>
-          <Text style={[styles.addLabel, { color: colors.onAccent }]}>Add</Text>
-        </Pressable>
-      </View>
-
       <FlatList
         data={dayTasks}
         keyExtractor={(task) => task.id}
@@ -122,7 +66,71 @@ export default function CalendarScreen() {
             refreshing={refreshing}
             onRefresh={refresh}
             tintColor={colors.accent}
+            colors={[colors.accent]}
+            progressBackgroundColor={colors.surface}
           />
+        }
+        ListHeaderComponent={
+          <View>
+            <View style={styles.header}>
+              <View>
+                <Text style={[styles.brand, { color: colors.muted }]}>Cadence</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{formatMonth(month)}</Text>
+              </View>
+              <View style={styles.arrows}>
+                <Pressable
+                  onPress={() => setMonth((current) => shiftMonth(current, -1))}
+                  style={[styles.arrow, { backgroundColor: colors.surface }]}>
+                  <Text style={[styles.arrowLabel, { color: colors.text }]}>‹</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setMonth((current) => shiftMonth(current, 1))}
+                  style={[styles.arrow, { backgroundColor: colors.surface }]}>
+                  <Text style={[styles.arrowLabel, { color: colors.text }]}>›</Text>
+                </Pressable>
+              </View>
+            </View>
+            <Text style={[styles.reloadHint, { color: colors.muted }]}>
+              Swipe down to reload.
+            </Text>
+
+            {storageError ? (
+              <Pressable
+                onPress={clearError}
+                style={[styles.error, { backgroundColor: colors.danger }]}>
+                <Text style={styles.errorText}>{storageError}</Text>
+              </Pressable>
+            ) : null}
+
+            <NotificationBanner />
+
+            <CalendarMonth
+              month={month}
+              tasks={tasks}
+              skippedDays={settings.skippedDays}
+              selectedKey={selectedKey}
+              onSelect={setSelectedKey}
+              onShift={(amount) => setMonth((current) => shiftMonth(current, amount))}
+            />
+
+            <View style={styles.dayHeader}>
+              <View style={styles.dayCopy}>
+                <Text style={[styles.dayTitle, { color: colors.text }]}>
+                  {formatLongDate(selectedKey)}
+                </Text>
+                <Text style={[styles.dayMeta, { color: colors.muted }]}>
+                  {dayTasks.length === 0
+                    ? 'No tasks yet'
+                    : `${dayTasks.length} scheduled`}
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setSheetOpen(true)}
+                style={[styles.add, { backgroundColor: colors.accent }]}>
+                <Text style={[styles.addLabel, { color: colors.onAccent }]}>Add</Text>
+              </Pressable>
+            </View>
+          </View>
         }
         contentContainerStyle={[
           styles.list,
@@ -173,6 +181,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
+  },
+  reloadHint: {
+    fontSize: type.caption,
+    marginTop: -space.sm,
+    marginBottom: space.md,
   },
   title: {
     fontSize: type.title,
