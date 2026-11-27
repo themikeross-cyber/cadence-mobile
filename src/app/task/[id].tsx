@@ -1,8 +1,9 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { EmptyState } from '../../components/EmptyState';
 import { TaskFormSheet } from '../../components/TaskFormSheet';
 import {
@@ -29,6 +30,7 @@ export default function TaskDetailScreen() {
   const dateKey =
     task && dateParam && occursOn(task, dateParam) ? dateParam : task?.scheduledDate;
   const [editing, setEditing] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   function saveEdit(draft: TaskDraft) {
     if (!task) {
@@ -41,24 +43,10 @@ export default function TaskDetailScreen() {
     if (!task) {
       return;
     }
-    Alert.alert(
-      'Delete this task?',
-      task.repeat === 'none'
-        ? 'This removes it from the selected day.'
-        : 'This removes it from every day it repeats.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            hapticDelete();
-            deleteTask(task.id);
-            router.back();
-          },
-        },
-      ],
-    );
+    hapticDelete();
+    deleteTask(task.id);
+    setDeleteOpen(false);
+    router.back();
   }
 
   const done = task && dateKey ? isCompleteOn(task, dateKey) : false;
@@ -118,11 +106,24 @@ export default function TaskDetailScreen() {
             style={[styles.secondary, { borderColor: colors.border }]}>
             <Text style={[styles.secondaryLabel, { color: colors.text }]}>Edit</Text>
           </Pressable>
-          <Pressable onPress={confirmDelete} style={styles.delete}>
+          <Pressable onPress={() => setDeleteOpen(true)} style={styles.delete}>
             <Text style={[styles.deleteLabel, { color: colors.danger }]}>Delete</Text>
           </Pressable>
         </ScrollView>
       ) : null}
+
+      <ConfirmDialog
+        visible={deleteOpen}
+        title="Delete this task?"
+        message={
+          task?.repeat === 'none'
+            ? 'This removes it from the selected day.'
+            : 'This removes it from every day it repeats.'
+        }
+        confirmLabel="Delete"
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={confirmDelete}
+      />
 
       <TaskFormSheet
         visible={editing}

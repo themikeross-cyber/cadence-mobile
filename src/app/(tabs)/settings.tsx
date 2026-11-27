@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -11,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { formatClock } from '../../data/dates';
 import { useTasks } from '../../data/TaskProvider';
 import type { ThemeChoice } from '../../data/types';
@@ -36,6 +36,7 @@ export default function SettingsScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [exported, setExported] = useState('');
+  const [clearOpen, setClearOpen] = useState(false);
 
   async function saveReminder() {
     try {
@@ -55,17 +56,6 @@ export default function SettingsScreen() {
       console.log('Could not remove the reminder.', error);
       setMessage('Could not remove the reminder. Try again.');
     }
-  }
-
-  function confirmClear() {
-    Alert.alert(
-      'Clear tasks?',
-      'This removes every task and skipped day on this device. Your theme and reminder stay.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear', style: 'destructive', onPress: clearData },
-      ],
-    );
   }
 
   return (
@@ -158,11 +148,23 @@ export default function SettingsScreen() {
           <Text style={[styles.rowLabel, { color: colors.text }]}>Export</Text>
         </Pressable>
         <Pressable
-          onPress={confirmClear}
+          onPress={() => setClearOpen(true)}
           style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.rowLabel, { color: colors.danger }]}>Clear tasks</Text>
         </Pressable>
       </ScrollView>
+
+      <ConfirmDialog
+        visible={clearOpen}
+        title="Clear tasks?"
+        message="This removes every task and skipped day on this device. Your theme and reminder stay."
+        confirmLabel="Clear"
+        onCancel={() => setClearOpen(false)}
+        onConfirm={() => {
+          setClearOpen(false);
+          clearData();
+        }}
+      />
 
       <Modal visible={exportOpen} transparent animationType="fade">
         <View style={[styles.exportBackdrop, { backgroundColor: colors.overlay }]}>
