@@ -23,7 +23,10 @@ export function NotificationBanner() {
     }
 
     let active = true;
-    scheduleDailyReminder(settings.reminderHour, settings.reminderMinute).then(
+    const schedule = settings.reminderEnabled
+      ? scheduleDailyReminder(settings.reminderHour, settings.reminderMinute)
+      : Promise.resolve('');
+    schedule.then(
       async (result) => {
         if (!active) {
           return;
@@ -55,10 +58,9 @@ export function NotificationBanner() {
       setMessage(access.message);
       return;
     }
-    const result = await scheduleDailyReminder(
-      settings.reminderHour,
-      settings.reminderMinute,
-    );
+    const result = settings.reminderEnabled
+      ? await scheduleDailyReminder(settings.reminderHour, settings.reminderMinute)
+      : '';
     await syncTaskNotifications(tasks);
     setMessage(result.startsWith('Daily reminder set') ? null : result);
   }

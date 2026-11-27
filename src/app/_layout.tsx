@@ -31,7 +31,7 @@ function NotificationBootstrap() {
       try {
         const result = await Notifications.requestPermissionsAsync();
         console.log(result);
-        if (result.granted) {
+        if (result.granted && settings.reminderEnabled) {
           console.log('Notification permissions granted.');
           const message = await scheduleDailyReminder(
             settings.reminderHour,

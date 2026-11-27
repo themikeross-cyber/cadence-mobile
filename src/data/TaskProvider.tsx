@@ -7,7 +7,11 @@ import {
   useState,
 } from 'react';
 
-import { scheduleDailyReminder, syncTaskNotifications } from '../notifications';
+import {
+  cancelDailyReminder,
+  scheduleDailyReminder,
+  syncTaskNotifications,
+} from '../notifications';
 import { loadStore, saveSettings, saveTasks } from './storage';
 import {
   defaultSettings,
@@ -32,6 +36,7 @@ type TaskContextValue = {
   skipDay: (dateKey: string) => void;
   setTheme: (theme: ThemeChoice) => void;
   setReminder: (hour: number, minute: number) => Promise<string>;
+  clearReminder: () => Promise<string>;
   clearData: () => void;
   exportData: () => string;
 };
@@ -166,10 +171,15 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       setReminder: async (hour, minute) => {
         setSettings((current) => ({
           ...current,
+          reminderEnabled: true,
           reminderHour: hour,
           reminderMinute: minute,
         }));
         return scheduleDailyReminder(hour, minute);
+      },
+      clearReminder: async () => {
+        setSettings((current) => ({ ...current, reminderEnabled: false }));
+        return cancelDailyReminder();
       },
       clearData: () => {
         setTasks([]);
@@ -180,10 +190,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
           {
             tasks,
             skippedDays: settings.skippedDays,
-            reminder: {
-              hour: settings.reminderHour,
-              minute: settings.reminderMinute,
-            },
+            reminder: settings.reminderEnabled
+              ? {
+                  hour: settings.reminderHour,
+                  minute: settings.reminderMinute,
+                }
+              : null,
           },
           null,
           2,

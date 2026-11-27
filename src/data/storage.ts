@@ -56,6 +56,10 @@ function migrateSettings(raw: Partial<AppSettings> | null): AppSettings {
   }
   return {
     theme: isTheme(raw.theme) ? raw.theme : defaultSettings.theme,
+    reminderEnabled:
+      typeof raw.reminderEnabled === 'boolean'
+        ? raw.reminderEnabled
+        : defaultSettings.reminderEnabled,
     reminderHour:
       typeof raw.reminderHour === 'number' ? raw.reminderHour : defaultSettings.reminderHour,
     reminderMinute:

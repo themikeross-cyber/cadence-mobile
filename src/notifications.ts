@@ -126,6 +126,20 @@ export async function scheduleDailyReminder(hour = 8, minute = 0) {
   }
 }
 
+export async function cancelDailyReminder() {
+  if (Platform.OS === 'web') {
+    return 'Daily reminder removed.';
+  }
+
+  try {
+    await Notifications.cancelScheduledNotificationAsync(DAILY_ID).catch(() => {});
+    return 'Daily reminder removed.';
+  } catch (error) {
+    console.log('Could not remove the daily reminder.', error);
+    return 'Could not remove the reminder. Try again.';
+  }
+}
+
 export async function syncTaskNotifications(tasks: Task[]) {
   if (Platform.OS === 'web') {
     return;

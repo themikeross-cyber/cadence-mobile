@@ -25,7 +25,7 @@ const THEMES: Array<{ value: ThemeChoice; label: string }> = [
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
-  const { settings, setTheme, setReminder, exportData, clearData } = useTasks();
+  const { settings, setTheme, setReminder, clearReminder, exportData, clearData } = useTasks();
   const [hour, setHour] = useState(settings.reminderHour);
   const [minute, setMinute] = useState(settings.reminderMinute);
 
@@ -44,6 +44,16 @@ export default function SettingsScreen() {
     } catch (error) {
       console.log('Could not schedule the reminder.', error);
       setMessage('Could not schedule the reminder. Allow notifications for Expo Go and try again.');
+    }
+  }
+
+  async function removeReminder() {
+    try {
+      const result = await clearReminder();
+      setMessage(result);
+    } catch (error) {
+      console.log('Could not remove the reminder.', error);
+      setMessage('Could not remove the reminder. Try again.');
     }
   }
 
@@ -124,6 +134,15 @@ export default function SettingsScreen() {
               Save reminder
             </Text>
           </Pressable>
+          {settings.reminderEnabled ? (
+            <Pressable onPress={removeReminder} style={styles.remove}>
+              <Text style={[styles.removeLabel, { color: colors.danger }]}>
+                Remove reminder
+              </Text>
+            </Pressable>
+          ) : (
+            <Text style={[styles.message, { color: colors.muted }]}>No daily reminder.</Text>
+          )}
           {message ? (
             <Text style={[styles.message, { color: colors.muted }]}>{message}</Text>
           ) : null}
@@ -284,6 +303,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.control,
     paddingVertical: 14,
     alignItems: 'center',
+  },
+  remove: {
+    alignItems: 'center',
+    paddingVertical: space.xs,
+  },
+  removeLabel: {
+    fontSize: type.body,
+    fontWeight: '700',
   },
   saveLabel: {
     fontSize: type.body,

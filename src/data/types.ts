@@ -22,6 +22,7 @@ export type TaskDraft = {
 
 export type AppSettings = {
   theme: ThemeChoice;
+  reminderEnabled: boolean;
   reminderHour: number;
   reminderMinute: number;
   skippedDays: string[];
@@ -29,6 +30,7 @@ export type AppSettings = {
 
 export const defaultSettings: AppSettings = {
   theme: 'dark',
+  reminderEnabled: true,
   reminderHour: 8,
   reminderMinute: 0,
   skippedDays: [],
