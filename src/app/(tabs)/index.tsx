@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
+import { scheduleDailyReminder } from '../_layout';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import {
   FlatList,
@@ -94,6 +95,7 @@ export default function TodayScreen() {
   const [tasks, setTasks] = useState(INITIAL_TASKS);
   const [newTask, setNewTask] = useState('');
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [reminderMessage, setReminderMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadTasks() {
@@ -145,6 +147,15 @@ export default function TodayScreen() {
     );
   }
 
+  async function testReminder() {
+    try {
+      const message = await scheduleDailyReminder();
+      setReminderMessage(message);
+    } catch {
+      setReminderMessage('Could not schedule the reminder.');
+    }
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -175,6 +186,12 @@ export default function TodayScreen() {
             <Text style={styles.addLabel}>Add</Text>
           </Pressable>
         </View>
+        <Pressable onPress={testReminder} style={styles.testButton}>
+          <Text style={styles.testLabel}>Test reminder</Text>
+        </Pressable>
+        {reminderMessage ? (
+          <Text style={styles.reminderMessage}>{reminderMessage}</Text>
+        ) : null}
 
         <FlatList
           data={tasks}
@@ -245,6 +262,26 @@ const styles = StyleSheet.create({
     color: '#1A1406',
     fontSize: 16,
     fontWeight: '700',
+  },
+  testButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FCBA28',
+    borderRadius: 12,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+  },
+  testLabel: {
+    color: '#1A1406',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  reminderMessage: {
+    color: '#F5F5F5',
+    fontSize: 14,
+    marginHorizontal: 20,
+    marginBottom: 12,
   },
   list: {
     paddingHorizontal: 20,
