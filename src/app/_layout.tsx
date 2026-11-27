@@ -1,31 +1,20 @@
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-export async function scheduleDailyReminder(): Promise<string> {
-  if (Platform.OS === 'web') {
-    return 'Reminders work on your phone.';
-  }
+import { TaskProvider, useTasks } from '../data/TaskProvider';
+import { scheduleDailyReminder } from '../notifications';
+import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      body: 'Time to check your tasks.',
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: 8,
-      minute: 0,
-    },
-  });
+function NotificationBootstrap() {
+  const { ready, settings } = useTasks();
 
-  return 'Daily reminder set for 8:00 AM.';
-}
-
-export default function RootLayout() {
   useEffect(() => {
-    if (Platform.OS === 'web') {
+    if (!ready || Platform.OS === 'web') {
       return;
     }
 
@@ -44,7 +33,10 @@ export default function RootLayout() {
         console.log(result);
         if (result.granted) {
           console.log('Notification permissions granted.');
-          const message = await scheduleDailyReminder();
+          const message = await scheduleDailyReminder(
+            settings.reminderHour,
+            settings.reminderMinute,
+          );
           console.log(message);
         } else {
           console.log('Notification permissions denied.');
@@ -55,13 +47,57 @@ export default function RootLayout() {
     }
 
     requestNotificationPermissions();
-  }, []);
+    // Schedule once after stored settings load. Later edits reschedule from Settings.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
+  return null;
+}
+
+function RootChrome() {
+  const { settings } = useTasks();
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack>
+    <ThemeProvider choice={settings.theme}>
+      <ThemedStack />
+    </ThemeProvider>
+  );
+}
+
+function ThemedStack() {
+  const { colors, scheme } = useTheme();
+
+  return (
+    <>
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      <NotificationBootstrap />
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.text,
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: colors.background },
+        }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        <TaskProvider>
+          <RootChrome />
+        </TaskProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});

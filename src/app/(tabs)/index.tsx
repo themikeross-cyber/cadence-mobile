@@ -1,339 +1,239 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Link } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { scheduleDailyReminder } from '../_layout';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { router } from 'expo-router';
+import { useState } from 'react';
 import {
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-type Task = {
-  id: string;
-  title: string;
-  completedToday: boolean;
-};
+import { CalendarMonth } from '../../components/CalendarMonth';
+import { EmptyState } from '../../components/EmptyState';
+import { TaskFormSheet } from '../../components/TaskFormSheet';
+import { TaskRow } from '../../components/TaskRow';
+import {
+  formatLongDate,
+  formatMonth,
+  shiftMonth,
+  tasksOnDate,
+  todayKey,
+} from '../../data/dates';
+import { useTasks } from '../../data/TaskProvider';
+import type { TaskDraft } from '../../data/types';
+import { useTheme } from '../../theme/ThemeProvider';
+import { radius, space, type } from '../../theme/tokens';
 
-const INITIAL_TASKS: Task[] = [
-  { id: '1', title: 'Review VPN config', completedToday: false },
-  { id: '2', title: 'Update SharePoint permissions', completedToday: false },
-  { id: '3', title: 'Check Defender alerts', completedToday: false },
-];
-
-const SWIPE_THRESHOLD = 120;
-
-function TaskCard({
-  task,
-  onToggle,
-}: {
-  task: Task;
-  onToggle: (id: string) => void;
-}) {
-  const translateX = useSharedValue(0);
-
-  const pan = useMemo(
-    () =>
-      Gesture.Pan()
-        .activeOffsetX(15)
-        .failOffsetY([-15, 15])
-        .onUpdate((event) => {
-          translateX.value = Math.max(0, event.translationX);
-        })
-        .onEnd((event) => {
-          if (event.translationX > SWIPE_THRESHOLD) {
-            scheduleOnRN(onToggle, task.id);
-          }
-          translateX.value = withTiming(0);
-        }),
-    [onToggle, task.id, translateX],
+export default function CalendarScreen() {
+  const { colors } = useTheme();
+  const {
+    tasks,
+    settings,
+    refreshing,
+    refresh,
+    addTask,
+    toggleComplete,
+    storageError,
+    clearError,
+  } = useTasks();
+  const [month, setMonth] = useState(
+    () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   );
+  const [selectedKey, setSelectedKey] = useState(todayKey);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const dayTasks = tasksOnDate(tasks, selectedKey);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
-
-  return (
-    <GestureDetector gesture={pan}>
-      <Animated.View
-        style={[
-          styles.card,
-          task.completedToday && styles.cardDone,
-          animatedStyle,
-        ]}>
-        <Link href={`/task/${task.id}`} asChild>
-          <Pressable style={styles.cardBody}>
-            <Text
-              style={[
-                styles.cardTitle,
-                task.completedToday && styles.cardTitleDone,
-              ]}>
-              {task.title}
-            </Text>
-          </Pressable>
-        </Link>
-        <Pressable onPress={() => onToggle(task.id)} style={styles.doneButton}>
-          <Text style={styles.doneLabel}>Done</Text>
-        </Pressable>
-      </Animated.View>
-    </GestureDetector>
-  );
-}
-
-export default function TodayScreen() {
-  const [tasks, setTasks] = useState(INITIAL_TASKS);
-  const [newTask, setNewTask] = useState('');
-  const [storageError, setStorageError] = useState<string | null>(null);
-  const [reminderMessage, setReminderMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function loadTasks() {
-      try {
-        const stored = await AsyncStorage.getItem('tasks');
-        if (stored) {
-          setTasks(JSON.parse(stored));
-        }
-      } catch {
-        setStorageError('Could not load your tasks.');
-      }
-    }
-
-    loadTasks();
-  }, []);
-
-  useEffect(() => {
-    async function saveTasks() {
-      try {
-        await AsyncStorage.setItem('tasks', JSON.stringify(tasks));
-      } catch {
-        setStorageError('Could not save your tasks.');
-      }
-    }
-
-    saveTasks();
-  }, [tasks]);
-
-  function addTask() {
-    const title = newTask.trim();
-    if (title.length === 0) {
-      return;
-    }
-
-    setTasks((current) => [
-      ...current,
-      { id: Date.now().toString(), title, completedToday: false },
-    ]);
-    setNewTask('');
+  function openTask(id: string, dateKey: string) {
+    router.push({ pathname: '/task/[id]', params: { id, date: dateKey } });
   }
 
-  function toggleCompleted(id: string) {
-    setTasks((current) =>
-      current.map((task) =>
-        task.id === id
-          ? { ...task, completedToday: !task.completedToday }
-          : task,
-      ),
-    );
-  }
-
-  async function testReminder() {
-    try {
-      const message = await scheduleDailyReminder();
-      setReminderMessage(message);
-    } catch {
-      setReminderMessage('Could not schedule the reminder.');
-    }
+  function saveTask(draft: TaskDraft) {
+    addTask(draft);
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}>
-      <View style={styles.screen}>
-        {storageError ? (
+    <SafeAreaView
+      edges={['top']}
+      style={[styles.screen, { backgroundColor: colors.background }]}>
+      <View style={styles.header}>
+        <View>
+          <Text style={[styles.brand, { color: colors.muted }]}>Cadence</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{formatMonth(month)}</Text>
+        </View>
+        <View style={styles.arrows}>
           <Pressable
-            onPress={() => setStorageError(null)}
-            style={styles.errorBanner}>
-            <Text style={styles.errorText}>{storageError}</Text>
+            onPress={() => setMonth((current) => shiftMonth(current, -1))}
+            style={[styles.arrow, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.arrowLabel, { color: colors.text }]}>‹</Text>
           </Pressable>
-        ) : null}
-        <View style={styles.composer}>
-          <TextInput
-            value={newTask}
-            onChangeText={setNewTask}
-            placeholder="New task"
-            placeholderTextColor="#A8A8B3"
-            style={styles.input}
-          />
           <Pressable
-            disabled={newTask.trim() === ''}
-            onPress={addTask}
-            style={[
-              styles.addButton,
-              newTask.trim() === '' && styles.addButtonDisabled,
-            ]}>
-            <Text style={styles.addLabel}>Add</Text>
+            onPress={() => setMonth((current) => shiftMonth(current, 1))}
+            style={[styles.arrow, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.arrowLabel, { color: colors.text }]}>›</Text>
           </Pressable>
         </View>
-        <Pressable onPress={testReminder} style={styles.testButton}>
-          <Text style={styles.testLabel}>Test reminder</Text>
-        </Pressable>
-        {reminderMessage ? (
-          <Text style={styles.reminderMessage}>{reminderMessage}</Text>
-        ) : null}
-
-        <FlatList
-          data={tasks}
-          keyExtractor={(task) => task.id}
-          contentContainerStyle={[
-            styles.list,
-            tasks.length === 0 && styles.emptyList,
-          ]}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>
-              No tasks yet. Add one above to get started.
-            </Text>
-          }
-          renderItem={({ item }) => (
-            <TaskCard task={item} onToggle={toggleCompleted} />
-          )}
-        />
       </View>
-    </KeyboardAvoidingView>
+
+      {storageError ? (
+        <Pressable
+          onPress={clearError}
+          style={[styles.error, { backgroundColor: colors.danger }]}>
+          <Text style={styles.errorText}>{storageError}</Text>
+        </Pressable>
+      ) : null}
+
+      <CalendarMonth
+        month={month}
+        tasks={tasks}
+        skippedDays={settings.skippedDays}
+        selectedKey={selectedKey}
+        onSelect={setSelectedKey}
+        onShift={(amount) => setMonth((current) => shiftMonth(current, amount))}
+      />
+
+      <View style={styles.dayHeader}>
+        <View style={styles.dayCopy}>
+          <Text style={[styles.dayTitle, { color: colors.text }]}>
+            {formatLongDate(selectedKey)}
+          </Text>
+          <Text style={[styles.dayMeta, { color: colors.muted }]}>
+            {dayTasks.length === 0
+              ? 'No tasks yet'
+              : `${dayTasks.length} scheduled`}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => setSheetOpen(true)}
+          style={[styles.add, { backgroundColor: colors.accent }]}>
+          <Text style={[styles.addLabel, { color: colors.onAccent }]}>Add</Text>
+        </Pressable>
+      </View>
+
+      <FlatList
+        data={dayTasks}
+        keyExtractor={(task) => task.id}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={refresh}
+            tintColor={colors.accent}
+          />
+        }
+        contentContainerStyle={[
+          styles.list,
+          dayTasks.length === 0 && styles.emptyList,
+        ]}
+        ListEmptyComponent={
+          <EmptyState
+            title="This day is open"
+            message="Add one task. Cadence will keep it on this date."
+            actionLabel="Add a task"
+            onAction={() => setSheetOpen(true)}
+          />
+        }
+        renderItem={({ item }) => (
+          <TaskRow
+            task={item}
+            dateKey={selectedKey}
+            onToggle={toggleComplete}
+            onOpen={openTask}
+          />
+        )}
+      />
+
+      <TaskFormSheet
+        visible={sheetOpen}
+        dateKey={selectedKey}
+        onClose={() => setSheetOpen(false)}
+        onSubmit={saveTask}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#121418',
+    paddingHorizontal: space.lg,
   },
-  errorBanner: {
-    backgroundColor: '#FF6B6B',
-    marginHorizontal: 20,
-    marginTop: 12,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  errorText: {
-    color: '#1A1406',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  composer: {
+  header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingTop: space.sm,
+    marginBottom: space.lg,
+  },
+  brand: {
+    fontSize: type.caption,
+    fontWeight: '600',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  title: {
+    fontSize: type.title,
+    fontWeight: '700',
+  },
+  arrows: {
+    flexDirection: 'row',
+    gap: space.sm,
+  },
+  arrow: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.control,
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#1C1F26',
-    color: '#F5F5F5',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-  },
-  addButton: {
-    backgroundColor: '#FCBA28',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-  },
-  addButtonDisabled: {
-    backgroundColor: '#3A3F4B',
-  },
-  addLabel: {
-    color: '#1A1406',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  testButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#FCBA28',
-    borderRadius: 12,
-    marginHorizontal: 20,
-    marginBottom: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-  },
-  testLabel: {
-    color: '#1A1406',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  reminderMessage: {
-    color: '#F5F5F5',
-    fontSize: 14,
-    marginHorizontal: 20,
-    marginBottom: 12,
-  },
-  list: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    gap: 16,
-  },
-  emptyList: {
-    flexGrow: 1,
     justifyContent: 'center',
   },
-  emptyText: {
-    color: '#A8A8B3',
-    fontSize: 16,
+  arrowLabel: {
+    fontSize: 22,
+    lineHeight: 24,
+  },
+  error: {
+    borderRadius: radius.control,
+    paddingVertical: space.sm,
+    paddingHorizontal: space.md,
+    marginBottom: space.md,
+  },
+  errorText: {
+    color: '#1C1A1B',
+    fontSize: type.caption,
     textAlign: 'center',
   },
-  card: {
+  dayHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1C1F26',
-    borderRadius: 12,
-    minHeight: 44,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 12,
+    marginTop: space.lg,
+    marginBottom: space.md,
+    gap: space.md,
   },
-  cardBody: {
+  dayCopy: {
     flex: 1,
+    gap: space.xs,
   },
-  cardDone: {
-    backgroundColor: '#1B7A45',
-  },
-  cardTitle: {
-    flex: 1,
-    color: '#F5F5F5',
-    fontSize: 16,
-  },
-  cardTitleDone: {
-    flex: 1,
-    color: '#6E6E78',
-    fontSize: 16,
-    textDecorationLine: 'line-through',
-  },
-  doneButton: {
-    backgroundColor: '#FCBA28',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-  },
-  doneLabel: {
-    color: '#1A1406',
-    fontSize: 14,
+  dayTitle: {
+    fontSize: type.body,
     fontWeight: '700',
+  },
+  dayMeta: {
+    fontSize: type.caption,
+  },
+  add: {
+    borderRadius: radius.control,
+    paddingVertical: space.md,
+    paddingHorizontal: space.lg,
+  },
+  addLabel: {
+    fontSize: type.body,
+    fontWeight: '700',
+  },
+  list: {
+    gap: space.md,
+    paddingBottom: space.xxl,
+  },
+  emptyList: {
+    flexGrow: 1,
   },
 });

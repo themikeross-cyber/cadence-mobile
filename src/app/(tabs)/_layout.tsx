@@ -1,72 +1,60 @@
 import { Tabs } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+
+import {
+  CalendarIcon,
+  SettingsIcon,
+  StatsIcon,
+  TodayIcon,
+} from '../../components/Icons';
+import { useTheme } from '../../theme/ThemeProvider';
 
 export default function TabLayout() {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.screen}>
-      <Text style={styles.header}>Cadence Mobile</Text>
-      <View style={styles.tabs}>
-        <Tabs
-          screenOptions={{
-            tabBarActiveTintColor: '#FCBA28',
-            tabBarInactiveTintColor: '#A8A8B3',
-            headerStyle: { backgroundColor: '#121418' },
-            headerTintColor: '#F5F5F5',
-            headerShadowVisible: false,
-            tabBarStyle: {
-              backgroundColor: '#121418',
-              borderTopColor: '#1C1F26',
-            },
-          }}>
-          <Tabs.Screen
-            name="index"
-            options={{
-              title: 'Today',
-              tabBarIcon: ({ color }) => (
-                <Text style={[styles.icon, { color }]}>🎯</Text>
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="history"
-            options={{
-              title: 'History',
-              tabBarIcon: ({ color }) => (
-                <Text style={[styles.icon, { color }]}>🕒</Text>
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="settings"
-            options={{
-              title: 'Settings',
-              tabBarIcon: ({ color }) => (
-                <Text style={[styles.icon, { color }]}>⚙️</Text>
-              ),
-            }}
-          />
-        </Tabs>
-      </View>
-    </View>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarStyle: {
+          backgroundColor: colors.background,
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+        },
+      }}>
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Calendar',
+          tabBarIcon: ({ color }) => <CalendarIcon color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="today"
+        options={{
+          title: 'Today',
+          tabBarIcon: ({ color }) => <TodayIcon color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="stats"
+        options={{
+          title: 'Stats',
+          tabBarIcon: ({ color }) => <StatsIcon color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color }) => <SettingsIcon color={color} />,
+        }}
+      />
+    </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#121418',
-  },
-  header: {
-    color: '#F5F5F5',
-    fontSize: 32,
-    fontWeight: '700',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  tabs: {
-    flex: 1,
-  },
-  icon: {
-    fontSize: 20,
-  },
-});
