@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react';
 
-import { scheduleDailyReminder } from '../notifications';
+import { scheduleDailyReminder, syncTaskNotifications } from '../notifications';
 import { loadStore, saveSettings, saveTasks } from './storage';
 import {
   defaultSettings,
@@ -70,9 +70,11 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     if (!canPersist) {
       return;
     }
-    saveTasks(tasks).catch(() => {
-      setStorageError('Could not save your tasks.');
-    });
+    saveTasks(tasks)
+      .then(() => syncTaskNotifications(tasks))
+      .catch(() => {
+        setStorageError('Could not save your tasks.');
+      });
   }, [tasks, canPersist]);
 
   useEffect(() => {

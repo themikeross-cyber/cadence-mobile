@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CalendarMonth } from '../../components/CalendarMonth';
+import { NotificationBanner } from '../../components/NotificationBanner';
 import { EmptyState } from '../../components/EmptyState';
 import { TaskFormSheet } from '../../components/TaskFormSheet';
 import { TaskRow } from '../../components/TaskRow';
@@ -83,6 +84,8 @@ export default function CalendarScreen() {
           <Text style={styles.errorText}>{storageError}</Text>
         </Pressable>
       ) : null}
+
+      <NotificationBanner />
 
       <CalendarMonth
         month={month}

@@ -38,8 +38,13 @@ export default function SettingsScreen() {
   const [exported, setExported] = useState('');
 
   async function saveReminder() {
-    const result = await setReminder(hour, minute);
-    setMessage(result);
+    try {
+      const result = await setReminder(hour, minute);
+      setMessage(result);
+    } catch (error) {
+      console.log('Could not schedule the reminder.', error);
+      setMessage('Could not schedule the reminder. Allow notifications for Expo Go and try again.');
+    }
   }
 
   function confirmClear() {

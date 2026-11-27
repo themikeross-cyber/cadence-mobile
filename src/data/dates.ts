@@ -16,6 +16,13 @@ export function parseDateKey(key: string) {
   return new Date(year, month - 1, day);
 }
 
+export function dateAtTime(dateKey: string, time: string) {
+  const date = parseDateKey(dateKey);
+  const [hour, minute] = time.split(':').map(Number);
+  date.setHours(hour, minute, 0, 0);
+  return date;
+}
+
 export function addDays(key: string, amount: number) {
   const date = parseDateKey(key);
   date.setDate(date.getDate() + amount);
